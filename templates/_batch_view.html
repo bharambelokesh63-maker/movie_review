@@ -1,0 +1,56 @@
+{# Shared by batch_result.html and dashboard.html. Expects variable r. #}
+<div class="alert info">Source: {{ r.source }}. {{ r.disclaimer }}</div>
+{% if r.small_sample %}<div class="alert warn">Only {{ r.total }} review{{ 's' if r.total != 1 }} analyzed — too few to represent general opinion.</div>{% endif %}
+
+<section class="stats">
+  <div class="stat"><b>{{ r.total }}</b><span>reviews analyzed</span></div>
+  <div class="stat pos"><b>{{ r.percent.Positive }}%</b><span>positive ({{ r.counts.Positive }})</span></div>
+  <div class="stat neg"><b>{{ r.percent.Negative }}%</b><span>negative ({{ r.counts.Negative }})</span></div>
+  <div class="stat neu"><b>{{ r.percent.Neutral }}%</b><span>neutral ({{ r.counts.Neutral }})</span></div>
+  {% if r.avg_rating is not none %}
+  <div class="stat"><b>{{ r.avg_rating }}</b><span>average rating ({{ r.n_rated }} rated)</span></div>
+  {% else %}
+  <div class="stat"><b>{{ '%+.2f'|format(r.avg_score) }}</b><span>average sentiment score</span></div>
+  {% endif %}
+</section>
+
+<section class="card"><h2>Summary</h2><p>{{ r.summary }}</p>
+  <p>Overall tone of these reviews: <span class="badge {{ r.verdict|lower }}">{{ r.verdict }}</span></p></section>
+
+<section class="grid2">
+  <div class="card"><h3>Sentiment distribution</h3><img class="chart" alt="Sentiment bar chart" src="{{ r.charts.sentiment }}"></div>
+  {% if r.charts.ratings %}<div class="card"><h3>Ratings</h3><img class="chart" alt="Rating histogram" src="{{ r.charts.ratings }}"></div>{% endif %}
+  {% if r.charts.words %}<div class="card"><h3>Most frequent words</h3><img class="chart" alt="Frequent words chart" src="{{ r.charts.words }}"></div>{% endif %}
+  {% if r.charts.keywords %}<div class="card"><h3>Top keywords (TF-IDF)</h3><img class="chart" alt="TF-IDF keywords chart" src="{{ r.charts.keywords }}"></div>{% endif %}
+</section>
+
+<section class="grid2">
+  <div class="card"><h3>Opinion words</h3>
+    <p><span class="tag pos">Positive</span>{% for w, c in r.pos_words %}<span class="chip pos">{{ w }} ×{{ c }}</span>{% else %}<em class="small">none</em>{% endfor %}</p>
+    <p><span class="tag neg">Negative</span>{% for w, c in r.neg_words %}<span class="chip neg">{{ w }} ×{{ c }}</span>{% else %}<em class="small">none</em>{% endfor %}</p>
+    {% if r.bigrams %}<p class="small">Frequent word pairs: {% for g, c in r.bigrams %}<span class="chip">{{ g }} ×{{ c }}</span>{% endfor %}</p>{% endif %}
+  </div>
+  <div class="card"><h3>Topics people mention</h3>
+    {% if r.aspects %}<table><tr><th>Topic</th><th>Mentions</th><th>Opinion</th></tr>
+      {% for a in r.aspects %}<tr><td>{{ a.aspect }}</td><td>{{ a.mentions }}</td>
+      <td><span class="badge small {{ a.opinion|lower }}">{{ a.opinion }}</span></td></tr>{% endfor %}</table>
+    {% else %}<p class="small">No known topics (acting, plot, music…) were mentioned.</p>{% endif %}
+  </div>
+</section>
+
+<section class="card"><h3>Discovered topics (LDA)</h3>
+  {% if r.topics.error %}<p class="small">{{ r.topics.error }}</p>
+  {% else %}
+    <div class="grid3">{% for t in r.topics.topics %}
+      <div><strong>Topic {{ t.id }}</strong><p>{% for w, p in t.words %}<span class="chip">{{ w }}</span>{% endfor %}</p></div>{% endfor %}</div>
+    <p class="small">{{ r.topics.note }}</p>
+  {% endif %}
+</section>
+
+<section class="card"><h3>Reviews{% if r.rows_hidden %} (first 50 of {{ r.total }}){% endif %}</h3>
+  <div class="table-wrap"><table><tr><th>#</th><th>Review</th><th>Score</th><th>Sentiment</th>{% if r.n_rated %}<th>Rating</th>{% endif %}</tr>
+    {% for row in r.rows %}<tr><td>{{ loop.index }}</td><td>{{ row.text[:160] }}{% if row.text|length > 160 %}…{% endif %}</td>
+      <td>{{ '%+.2f'|format(row.score) }}</td><td><span class="badge small {{ row.label|lower }}">{{ row.label }}</span></td>
+      {% if r.n_rated %}<td>{{ row.rating if row.rating is not none else '–' }}</td>{% endif %}</tr>{% endfor %}
+  </table></div>
+</section>

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Analysis · {{ r.movie }}{% endblock %}
+{% block content %}
+<h1>{{ r.movie }}</h1>
+
+{% for w in r.warnings %}<div class="alert warn">{{ w }}</div>{% endfor %}
+
+<section class="card">
+  <h2>Result</h2>
+  <div class="result-head">
+    <span class="badge {{ r.sentiment|lower }}">{{ r.sentiment }}</span>
+    <span class="score">Score: {{ '%+.2f'|format(r.score) }}</span>
+  </div>
+  <p>{{ r.summary }}</p>
+  <details><summary>What does the score mean?</summary><p class="small">{{ r.score_explanation }}</p></details>
+  {% if r.ml %}
+  <p class="small">Trained model ({{ r.ml.source }}) predicts <strong>{{ r.ml.label }}</strong> with probability
+    {{ r.ml.probability }}. A probability is the model's own estimate and is only as good as its training data.</p>
+  {% endif %}
+</section>
+
+<section class="stats">
+  <div class="stat"><b>{{ r.stats.word_count }}</b><span>words</span></div>
+  <div class="stat"><b>{{ r.stats.sentence_count }}</b><span>sentences</span></div>
+  <div class="stat"><b>{{ r.stats.language }}</b><span>language</span></div>
+</section>
+
+<section class="grid2">
+  <div class="card">
+    <h3>Opinion words</h3>
+    <p><span class="tag pos">Positive</span>
+      {% for w, c in r.opinions.positive %}<span class="chip pos">{{ w }}{% if c > 1 %} ×{{ c }}{% endif %}</span>{% else %}<em class="small">none found</em>{% endfor %}</p>
+    <p><span class="tag neg">Negative</span>
+      {% for w, c in r.opinions.negative %}<span class="chip neg">{{ w }}{% if c > 1 %} ×{{ c }}{% endif %}</span>{% else %}<em class="small">none found</em>{% endfor %}</p>
+  </div>
+
+  <div class="card">
+    <h3>Detected emotions</h3>
+    {% if r.emotions.emotions %}
+    <table><tr><th>Emotion</th><th>Cue words</th></tr>
+      {% for e in r.emotions.emotions %}<tr><td>{{ e.emotion }}</td><td>{{ e.cue_words|join(', ') }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p class="small">No emotion cue words found.</p>{% endif %}
+    <p class="small">{{ r.emotions.method }}</p>
+  </div>
+
+  <div class="card">
+    <h3>Keywords</h3>
+    {% if r.keywords %}
+    <table><tr><th>Word</th><th>TF-IDF</th></tr>
+      {% for w, s in r.keywords %}<tr><td>{{ w }}</td><td>{{ s }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p class="small">Not enough words to extract keywords.</p>{% endif %}
+    {% if r.bigrams %}<p class="small">Frequent word pairs: {% for g, c in r.bigrams %}<span class="chip">{{ g }}</span>{% endfor %}</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Named entities</h3>
+    {% if r.entities.entities %}
+    <table><tr><th>Text</th><th>Label</th></tr>
+      {% for e in r.entities.entities %}<tr><td>{{ e.text }}</td><td>{{ e.label }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p class="small">No entities detected.</p>{% endif %}
+    <p class="small">Method: {{ r.entities.method }}.{% if r.entities.note %} {{ r.entities.note }}{% endif %}</p>
+  </div>
+</section>
+
+{% if r.aspects %}
+<section class="card">
+  <h3>What the review talks about</h3>
+  <table><tr><th>Topic</th><th>Mentions</th><th>Opinion</th></tr>
+    {% for a in r.aspects %}<tr><td>{{ a.aspect }}</td><td>{{ a.mentions }}</td>
+      <td><span class="badge small {{ a.opinion|lower }}">{{ a.opinion }}</span> ({{ '%+.2f'|format(a.avg_score) }})</td></tr>{% endfor %}
+  </table>
+</section>
+{% endif %}
+
+<section class="card">
+  <h3>Original review</h3>
+  <blockquote>{{ r.review }}</blockquote>
+  <p class="small">{{ r.disclaimer }}</p>
+</section>
+
+<a class="btn" href="{{ url_for('home') }}">← Analyze another review</a>
+{% endblock %}

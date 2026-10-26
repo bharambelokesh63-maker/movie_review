@@ -1,0 +1,14 @@
+# Core (required)
+flask>=3.0
+gunicorn>=21.2
+nltk>=3.9
+scikit-learn>=1.3
+pandas>=2.0
+numpy>=1.24
+matplotlib>=3.7
+joblib>=1.3
+vaderSentiment>=3.3.2      # self-contained VADER lexicon (works even if NLTK downloads are blocked)
+
+# Optional (the app runs without them and says so on screen)
+# spacy>=3.7               # real NER / POS tagging -> then run: python -m spacy download en_core_web_sm
+# langdetect               # better language detection (can fail to build on some Python versions - skip it if so)

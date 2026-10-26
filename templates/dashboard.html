@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Movie Review Dashboard</h1>
+{% if r %}
+  {% if sample_used %}<div class="alert info">Showing the bundled <strong>demo</strong> reviews (fictional, for testing only).</div>{% endif %}
+  <p>Statistics for: <strong>{{ r.movie }}</strong></p>
+  {% include "_batch_view.html" %}
+{% else %}
+  <section class="card">
+    <h2>No reviews analyzed yet</h2>
+    <p>The dashboard shows statistics for the last set of reviews you analyzed. Nothing is shown until you provide data.</p>
+    <div class="row">
+      <a class="btn" href="{{ url_for('batch') }}">Analyze your reviews</a>
+      <a class="btn ghost" href="{{ url_for('dashboard', sample=1) }}">Load demo reviews</a>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

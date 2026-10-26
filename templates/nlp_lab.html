@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}NLP Learning Lab{% endblock %}
+{% block content %}
+<h1>NLP Learning Lab</h1>
+<p>Try each concept from the lab assignments. Pick a tab, enter text, press the button — the Python backend does the work.</p>
+
+{% if lab and lab.error %}<div class="alert error">{{ lab.error }}</div>{% endif %}
+
+{% set active = lab.concept if lab else 'preprocess' %}
+{% macro mirror(active_tab) %}{% endmacro %}
+
+<div class="tabs" id="labtabs" data-active="{{ active }}">
+  <button type="button" data-tab="preprocess">A2 Preprocess</button>
+  <button type="button" data-tab="news">A2 News CSV</button>
+  <button type="button" data-tab="stem">A3 Stem / Lemma</button>
+  <button type="button" data-tab="pos">A4 POS</button>
+  <button type="button" data-tab="similarity">A4 Similarity</button>
+  <button type="button" data-tab="ner">A5 NER</button>
+  <button type="button" data-tab="tfidf">A6 TF-IDF</button>
+  <button type="button" data-tab="ngram">A7 N-grams</button>
+  <button type="button" data-tab="lm">A8 Language Model</button>
+  <button type="button" data-tab="topics">A9 Topics</button>
+  <button type="button" data-tab="sentiment">A10 Sentiment</button>
+</div>
+
+{# ---------------- A2 preprocessing ---------------- #}
+<section class="card panel" data-panel="preprocess">
+  <h2>Assignment 2 · Text preprocessing</h2>
+  <p class="small">Language detection, sentence/word counts, tokenization, punctuation and stop-word removal.</p>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="preprocess">
+    <textarea name="text" rows="4">{{ form.text }}</textarea>
+    <button class="btn" type="submit">Preprocess</button>
+  </form>
+  {% if lab and lab.pre %}{% set p = lab.pre %}
+  <table>
+    <tr><th>Language</th><td>{{ p.stats.language }} <span class="small">({{ p.stats.language_note }})</span></td></tr>
+    <tr><th>Words / sentences</th><td>{{ p.stats.word_count }} words, {{ p.stats.sentence_count }} sentences</td></tr>
+    <tr><th>Tokens</th><td>{{ p.tokens|join(' | ') }}</td></tr>
+    <tr><th>After removing punctuation</th><td>{{ p.no_punct|join(' | ') }}</td></tr>
+    <tr><th>Stop words removed</th><td>{{ p.removed_stopwords|join(', ') or 'none' }}</td></tr>
+    <tr><th>Clean tokens</th><td>{{ p.clean|join(' | ') }}</td></tr>
+  </table>
+  <p class="small">Stop words (the, is, and…) carry little meaning, so removing them helps find the informative words. Negations like "not" are kept because they flip sentiment.</p>
+  {% endif %}
+</section>
+
+<section class="card panel" data-panel="news">
+  <h2>Assignment 2 · News dataset analysis</h2>
+  <p class="small">Upload a HuffPost-style CSV (columns like <code>headline</code>, <code>category</code>) or leave empty to use the bundled demo headlines.</p>
+  <form method="post" action="{{ url_for('nlp_lab') }}" enctype="multipart/form-data" class="js-loading">
+    <input type="hidden" name="concept" value="news">
+    <input type="file" name="csv_file" accept=".csv,.txt">
+    <button class="btn" type="submit">Analyze dataset</button>
+  </form>
+  {% if lab and lab.news %}{% set n = lab.news %}
+  <p class="small">Source: {{ lab.source }}</p>
+  <div class="stats">
+    <div class="stat"><b>{{ n.rows }}</b><span>rows</span></div>
+    <div class="stat"><b>{{ n.avg_words }}</b><span>avg words / headline</span></div>
+    <div class="stat"><b>{{ n.vocabulary_size }}</b><span>unique clean words</span></div>
+    <div class="stat"><b>{{ n.missing_text }}</b><span>empty texts skipped</span></div>
+  </div>
+  <p class="small">Text column used: <code>{{ n.text_column }}</code> · {{ n.rows_used }} rows processed · min/max words: {{ n.min_words }}/{{ n.max_words }} · languages: {% for l, c in n.languages %}{{ l }} ({{ c }}) {% endfor %}</p>
+  <p>Top words: {% for w, c in n.top_words %}<span class="chip">{{ w }} ×{{ c }}</span>{% endfor %}</p>
+  {% if n.categories %}<p>Categories: {% for c, v in n.categories %}<span class="chip">{{ c or '(empty)' }} {{ v }}</span>{% endfor %}</p>{% endif %}
+  <table><tr><th>Original</th><th>Cleaned</th></tr>{% for e in n.examples %}<tr><td>{{ e.original }}</td><td>{{ e.clean }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+
+{# ---------------- A3 ---------------- #}
+<section class="card panel" data-panel="stem">
+  <h2>Assignment 3 · Stemming vs lemmatization</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="stem">
+    <textarea name="text" rows="3">{{ form.text }}</textarea>
+    <button class="btn" type="submit">Compare</button>
+  </form>
+  {% if lab and lab.stem %}
+  {% if lab.stem.note %}<div class="alert warn">{{ lab.stem.note }}</div>{% endif %}
+  <div class="table-wrap"><table><tr><th>Original</th><th>Porter stem</th><th>Lemma</th></tr>
+    {% for r in lab.stem.rows %}<tr><td>{{ r.original }}</td><td>{{ r.stem }}</td><td>{{ r.lemma }}</td></tr>{% endfor %}</table></div>
+  <p class="small">{{ lab.stem_explanation }}</p>
+  {% endif %}
+</section>
+
+{# ---------------- A4 ---------------- #}
+<section class="card panel" data-panel="pos">
+  <h2>Assignment 4 · Part-of-speech tagging</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="pos">
+    <textarea name="text" rows="3">{{ form.text }}</textarea>
+    <button class="btn" type="submit">Tag words</button>
+  </form>
+  {% if lab and lab.pos %}
+  <p class="small">Method: {{ lab.pos.method }}</p>
+  <p>{% for w, t in lab.pos.tagged %}<span class="chip">{{ w }} <b>{{ t }}</b></span>{% endfor %}</p>
+  <table><tr><th>Group</th><th>Words</th></tr>
+    {% for g, words in lab.pos.groups.items() %}<tr><td>{{ g }}s</td><td>{{ words|join(', ') or '–' }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+
+<section class="card panel" data-panel="similarity">
+  <h2>Assignment 4 · Semantic similarity</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="similarity">
+    <label>Text A</label><textarea name="text" rows="2">{{ form.text }}</textarea>
+    <label>Text B</label><textarea name="text2" rows="2">{{ form.text2 }}</textarea>
+    <button class="btn" type="submit">Compare</button>
+  </form>
+  {% if lab and lab.sim and not lab.sim.error %}
+  <p><strong>Similarity: {{ lab.sim.score }}</strong> (0 = nothing shared, 1 = identical)</p>
+  <p class="small">Method: {{ lab.sim.method }}</p>
+  {% if lab.sim.note %}<div class="alert warn">{{ lab.sim.note }}</div>{% endif %}
+  {% endif %}
+</section>
+
+{# ---------------- A5 ---------------- #}
+<section class="card panel" data-panel="ner">
+  <h2>Assignment 5 · Named entity recognition</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="ner">
+    <textarea name="text" rows="3">{{ form.text }}</textarea>
+    <button class="btn" type="submit">Find entities</button>
+  </form>
+  {% if lab and lab.ner %}
+  <p class="small">Method: {{ lab.ner.method }}</p>
+  {% if lab.ner.entities %}<table><tr><th>Entity</th><th>Label</th></tr>
+    {% for e in lab.ner.entities %}<tr><td>{{ e.text }}</td><td>{{ e.label }}</td></tr>{% endfor %}</table>
+  {% else %}<p>No entities found.</p>{% endif %}
+  {% if lab.ner.note %}<div class="alert warn">{{ lab.ner.note }}</div>{% endif %}
+  <p class="small">{{ lab.ner_explanation }}</p>
+  {% endif %}
+</section>
+
+{# ---------------- A6 ---------------- #}
+<section class="card panel" data-panel="tfidf">
+  <h2>Assignment 6 · TF-IDF</h2>
+  <p class="small">Enter one or more reviews. Separate reviews with a blank line.</p>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="tfidf">
+    <textarea name="text" rows="6">{{ form.text if lab and lab.concept == 'tfidf' else "The acting was brilliant and the story was moving.\n\nThe plot was boring and the acting was weak.\n\nBrilliant music and stunning cinematography made the film special." }}</textarea>
+    <button class="btn" type="submit">Calculate TF-IDF</button>
+  </form>
+  {% if lab and lab.tfidf and not lab.tfidf.error %}
+  <h3>Overall top keywords</h3>
+  <table><tr><th>Word</th><th>Average TF-IDF</th></tr>{% for w, s in lab.tfidf.overall %}<tr><td>{{ w }}</td><td>{{ s }}</td></tr>{% endfor %}</table>
+  {% for d in lab.tfidf.per_doc %}<p class="small"><strong>Review {{ d.doc }}:</strong> {% for w, s in d.top[:5] %}<span class="chip">{{ w }} {{ s }}</span>{% endfor %}</p>{% endfor %}
+  <p class="small">{{ lab.tfidf_explanation }}</p>
+  {% endif %}
+</section>
+
+{# ---------------- A7 ---------------- #}
+<section class="card panel" data-panel="ngram">
+  <h2>Assignment 7 · N-gram analysis</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="ngram">
+    <textarea name="text" rows="3">{{ form.text }}</textarea>
+    <label>N-gram size (1 = unigram, 2 = bigram, 3 = trigram…)</label>
+    <select name="n">{% for i in [1,2,3,4] %}<option value="{{ i }}" {{ 'selected' if form.n|string == i|string }}>{{ i }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">Generate</button>
+  </form>
+  {% if lab and lab.ngram and not lab.ngram.error %}
+  <p class="small">{{ lab.ngram.total }} {{ lab.ngram.n }}-grams generated.</p>
+  <table><tr><th>{{ lab.ngram.n }}-gram</th><th>Count</th></tr>{% for g, c in lab.ngram.top %}<tr><td>{{ g }}</td><td>{{ c }}</td></tr>{% endfor %}</table>
+  {% endif %}
+</section>
+
+{# ---------------- A8 ---------------- #}
+<section class="card panel" data-panel="lm">
+  <h2>Assignment 8 · N-gram language model (bigram, add-one smoothing)</h2>
+  <p class="small">Training text is optional (blank line between texts). If left empty, the bundled demo reviews are used.</p>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="lm">
+    <label>Training text (optional)</label><textarea name="train_text" rows="4">{{ form.train_text or '' }}</textarea>
+    <label>Sentence to score</label>
+    <input type="text" name="lm_sentence" value="{{ form.lm_sentence or 'the acting was great' }}">
+    <button class="btn" type="submit">Calculate probability</button>
+  </form>
+  {% if lab and lab.lm and not lab.lm.error %}{% set m = lab.lm %}
+  <p class="small">Trained on {{ lab.lm_source }} · {{ m.train_sentences }} sentences · vocabulary {{ m.vocab_size }} (including &lt;s&gt;, &lt;/s&gt;, &lt;unk&gt;)</p>
+  {% if m.note %}<div class="alert warn">{{ m.note }}</div>{% endif %}
+  <table><tr><th>Step</th><th>Formula (count+1)/(count of previous+V)</th><th>Probability</th></tr>
+    {% for s in m.steps %}<tr><td>{{ s.pair }}{% if s.unknown %} <span class="small">(unknown word)</span>{% endif %}</td><td>{{ s.formula }}</td><td>{{ '%.5f'|format(s.prob) }}</td></tr>{% endfor %}</table>
+  <p><strong>Sentence probability</strong> = product of steps = {{ '%.3e'|format(m.probability) }} · perplexity {{ '%.1f'|format(m.perplexity) }}</p>
+  {% if m.next_suggestions %}<p class="small">Words seen after "{{ m.tokens[-1] }}": {% for w, c in m.next_suggestions %}<span class="chip">{{ w }} ×{{ c }}</span>{% endfor %}</p>{% endif %}
+  <p class="small">Add-one smoothing gives unseen word pairs a small non-zero probability, so the whole sentence never becomes 0. Words not in the training vocabulary are mapped to &lt;unk&gt;.</p>
+  {% endif %}
+</section>
+
+{# ---------------- A9 ---------------- #}
+<section class="card panel" data-panel="topics">
+  <h2>Assignment 9 · Topic modelling</h2>
+  <p class="small">Paste at least 4 reviews (blank line between them) or leave empty to use the bundled demo reviews.</p>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="topics">
+    <textarea name="text" rows="5">{{ form.text if lab and lab.concept == 'topics' else '' }}</textarea>
+    <div class="row">
+      <div><label>Method</label><select name="method"><option value="lda" {{ 'selected' if form.method == 'lda' }}>LDA</option><option value="lsi" {{ 'selected' if form.method == 'lsi' }}>LSI</option></select></div>
+      <div><label>Number of topics</label><input type="number" name="n_topics" min="2" max="8" value="{{ form.n_topics or 3 }}"></div>
+    </div>
+    <button class="btn" type="submit">Find topics</button>
+  </form>
+  {% if lab and lab.topics and not lab.topics.error %}
+  <p class="small">{{ lab.topics.method }} on {{ lab.topics.n_docs }} reviews from {{ lab.topics_source }}.</p>
+  <table><tr><th>Topic</th><th>Important words (weight)</th></tr>
+    {% for t in lab.topics.topics %}<tr><td>Topic {{ t.id }}</td><td>{% for w, p in t.words %}<span class="chip">{{ w }} {{ p }}</span>{% endfor %}</td></tr>{% endfor %}</table>
+  <p class="small">{{ lab.topics.note }}</p>
+  {% endif %}
+</section>
+
+{# ---------------- A10 ---------------- #}
+<section class="card panel" data-panel="sentiment">
+  <h2>Assignment 10 · Sentiment &amp; opinion mining</h2>
+  <form method="post" action="{{ url_for('nlp_lab') }}" class="js-loading">
+    <input type="hidden" name="concept" value="sentiment">
+    <textarea name="text" rows="3">{{ form.text }}</textarea>
+    <button class="btn" type="submit">Analyze sentiment</button>
+  </form>
+  {% if lab and lab.sent %}{% set s = lab.sent %}
+  <p><span class="badge {{ s.label|lower }}">{{ s.label }}</span> score {{ '%+.2f'|format(s.score) }}</p>
+  <p class="small">{{ s.explanation }}</p>
+  <p><span class="tag pos">Positive</span>{% for w, c in s.opinions.positive %}<span class="chip pos">{{ w }}</span>{% else %}<em class="small">none</em>{% endfor %}
+     <span class="tag neg">Negative</span>{% for w, c in s.opinions.negative %}<span class="chip neg">{{ w }}</span>{% else %}<em class="small">none</em>{% endfor %}</p>
+  <p>Emotions: {% for e in s.emotions.emotions %}<span class="chip">{{ e.emotion }} ({{ e.cue_words|join(', ') }})</span>{% else %}<em class="small">none detected</em>{% endfor %}</p>
+  {% if s.ml %}<p class="small">Trained model prediction: {{ s.ml.label }} ({{ s.ml.probability }})</p>{% endif %}
+  <div class="alert warn">{{ s.disclaimer }}</div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Installed NLP resources</h3>
+  <table><tr><th>Resource</th><th>Status</th><th>If missing</th></tr>
+    {% for name, ok, fb in nlp_status %}<tr><td>{{ name }}</td><td>{{ '✅ installed' if ok else '⚠️ missing' }}</td><td class="small">{{ fb }}</td></tr>{% endfor %}</table>
+  <p class="small">See the README for the install commands that enable every resource.</p>
+</section>
+{% endblock %}

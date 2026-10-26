@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Movie Review Analyzer · Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Movie Review Analyzer &amp; Opinion Mining</h1>
+  <p>Type a movie name and paste a review. Python NLP will tell you whether the opinion is positive, negative
+     or neutral, which words drive it, what emotions appear and which names are mentioned.</p>
+</section>
+
+<section class="card">
+  <h2>Analyze a review</h2>
+  <form method="post" action="{{ url_for('analyze') }}" class="js-loading">
+    <label for="movie">Movie name</label>
+    <input id="movie" name="movie" type="text" maxlength="120" placeholder="e.g. Inception" value="{{ movie or '' }}">
+
+    <label for="review">Review</label>
+    <textarea id="review" name="review" rows="7" maxlength="20000" placeholder="Write or paste a movie review here…">{{ review or '' }}</textarea>
+    <div class="hint"><span id="charcount">0</span> characters</div>
+
+    <div class="row">
+      <button type="submit" class="btn">Analyze Review</button>
+      <button type="button" class="btn ghost" onclick="fillExample()">Use example review</button>
+    </div>
+  </form>
+</section>
+
+<section class="grid3">
+  <div class="card"><h3>1 · You write</h3><p>Enter one review here, or many reviews on the <a href="{{ url_for('batch') }}">Multiple Reviews</a> page.</p></div>
+  <div class="card"><h3>2 · Python analyzes</h3><p>Flask sends the text to NLP modules: tokenizing, stop-word removal, VADER sentiment, TF-IDF, NER, emotion rules.</p></div>
+  <div class="card"><h3>3 · You read</h3><p>The result page shows sentiment, score, keywords, emotions, entities and a short summary.</p></div>
+</section>
+
+<section class="card note">
+  <strong>Please note:</strong> predictions are estimates and can be wrong (sarcasm and mixed opinions are hard).
+  Statistics describe only the reviews you provide — not all viewers of a movie.
+</section>
+{% endblock %}
